@@ -15,7 +15,7 @@ try:
     from reportlab.lib.pagesizes import A4, landscape
     from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.lib.units import inch, cm
+    from reportlab.lib.units import inch, cm, mm
     from reportlab.lib import colors
     from reportlab.pdfbase import pdfmetrics
     from reportlab.pdfbase.ttfonts import TTFont
@@ -1186,15 +1186,38 @@ class CalendarGenerator:
         try:
             # Create a BytesIO buffer to store PDF
             buffer = BytesIO()
-            
-            # Create PDF document with landscape orientation for better calendar layout
+            import os
+
+            calendar_font = 'Helvetica'
+            font_paths = [
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'fonts', 'msyh.ttc'),
+                'C:/Windows/Fonts/msyh.ttc',
+                'C:/Windows/Fonts/simhei.ttf',
+                '/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc',
+            ]
+            for font_path in font_paths:
+                if not os.path.isfile(font_path):
+                    continue
+                try:
+                    pdfmetrics.registerFont(TTFont('CalendarChinese', font_path, subfontIndex=0))
+                    pdfmetrics.registerFontFamily(
+                        'CalendarChinese', normal='CalendarChinese', bold='CalendarChinese',
+                        italic='CalendarChinese', boldItalic='CalendarChinese'
+                    )
+                    calendar_font = 'CalendarChinese'
+                    break
+                except Exception as font_error:
+                    print(f"Unable to load calendar font {font_path}: {font_error}")
+
+            # Use a nearly borderless landscape A4 page. All 12 months are
+            # arranged in a compact 3-column by 4-row grid.
             doc = SimpleDocTemplate(
-                buffer, 
+                buffer,
                 pagesize=landscape(A4),
-                rightMargin=0.5*inch, 
-                leftMargin=0.5*inch,
-                topMargin=0.5*inch, 
-                bottomMargin=0.5*inch,
+                rightMargin=3*mm,
+                leftMargin=3*mm,
+                topMargin=3*mm,
+                bottomMargin=3*mm,
                 title=f"{year}年年历"
             )
             
@@ -1206,51 +1229,45 @@ class CalendarGenerator:
             title_style = ParagraphStyle(
                 'CustomTitle',
                 parent=styles['Heading1'],
-                fontSize=24,
-                spaceAfter=30,
+                fontSize=16,
+                leading=18,
+                spaceAfter=0,
                 alignment=TA_CENTER,
+                fontName=calendar_font,
             )
             
             # Add title
-            title = Paragraph(f"{year}年年历", title_style)
+            title_text = f"{year}年年历" if calendar_font != 'Helvetica' else f"{year} Calendar"
+            title = Paragraph(title_text, title_style)
             story.append(title)
-            story.append(Spacer(1, 20))
+            story.append(Spacer(1, 4))
             
             # Generate calendar data
             calendar_data = self.generate_calendar_data(year, options, session_id)
             
             # Month names
-            month_names = ["", "一月", "二月", "三月", "四月", "五月", "六月",
-                          "七月", "八月", "九月", "十月", "十一月", "十二月"]
+            month_names = (
+                ["", "一月", "二月", "三月", "四月", "五月", "六月", "七月", "八月", "九月", "十月", "十一月", "十二月"]
+                if calendar_font != 'Helvetica'
+                else ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+            )
             
-            # Generate 3 months per page (4 pages total)
-            months_per_page = 3
-            for page_start in range(0, 12, months_per_page):
-                page_months = calendar_data['months'][page_start:page_start + months_per_page]
-                
-                # Create a table for 3 months side by side
-                month_tables = []
-                
-                for month_data in page_months:
-                    month_table = self._create_month_table_for_pdf(month_data, year, month_names)
-                    month_tables.append(month_table)
-                
-                # Create horizontal layout for months
-                if len(month_tables) > 0:
-                    # Create a table to hold the month tables horizontally
-                    row_data = [month_tables]
-                    months_layout_table = Table(row_data, colWidths=[2.5*inch]*len(month_tables))
-                    months_layout_table.setStyle(TableStyle([
-                        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                        ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                        ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                    ]))
-                    
-                    story.append(months_layout_table)
-                    
-                    # Add page break except for the last page
-                    if page_start + months_per_page < 12:
-                        story.append(PageBreak())
+            # Fit all 12 months on one A4 landscape page.
+            month_width = doc.width / 3
+            month_tables = [
+                self._create_month_table_for_pdf(month_data, year, month_names, month_width - 3, calendar_font)
+                for month_data in calendar_data['months']
+            ]
+            month_grid = [month_tables[index:index + 3] for index in range(0, 12, 3)]
+            grid = Table(month_grid, colWidths=[month_width] * 3)
+            grid.setStyle(TableStyle([
+                ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 1.5),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 1.5),
+                ('TOPPADDING', (0, 0), (-1, -1), 1),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 1),
+            ]))
+            story.append(grid)
             
             # Build PDF with error handling
             try:
@@ -1353,30 +1370,25 @@ class CalendarGenerator:
             # Calculate dimensions
             page_width = 297  # A4 landscape width in mm
             page_height = 210  # A4 landscape height in mm
-            margin = 10
+            margin = 2
             usable_width = page_width - 2 * margin
-            usable_height = page_height - 40  # Leave space for title
-            
-            months_per_page = 6  # 2 rows x 3 columns
+            usable_height = page_height - 16  # compact title area
+
+            months_per_page = 12  # 4 rows x 3 columns on one page
             month_width = usable_width / 3
-            month_height = usable_height / 2
+            month_height = usable_height / 4
             
             current_month = 0
             
-            for page_num in range(2):  # 2 pages for 12 months
-                if page_num > 0:
-                    pdf.add_page()
-                    # Add title to new page
-                    if chinese_font_added:
-                        pdf.set_font('Chinese', '', 16)
-                        pdf.cell(0, 15, f'{year}年年历 (第{page_num + 1}页)', 0, 1, 'C')
-                    else:
-                        pdf.set_font('Arial', 'B', 16)
-                        pdf.cell(0, 15, f'{year} Calendar (Page {page_num + 1})', 0, 1, 'C')
-                    pdf.ln(5)
-                
-                # Draw 6 months on this page (2 rows x 3 columns)
-                for row in range(2):
+            if chinese_font_added:
+                pdf.set_font('Chinese', '', 10)
+                pdf.cell(0, 7, f'{year}年年历', 0, 1, 'C')
+            else:
+                pdf.set_font('Arial', 'B', 10)
+                pdf.cell(0, 7, f'{year} Calendar', 0, 1, 'C')
+
+            for page_num in range(1):
+                for row in range(4):
                     for col in range(3):
                         if current_month >= 12:
                             break
@@ -1386,7 +1398,7 @@ class CalendarGenerator:
                         
                         # Calculate position
                         x = margin + col * month_width
-                        y = 30 + row * month_height
+                        y = 10 + row * month_height
                         
                         # Draw month
                         self._draw_month_fpdf(pdf, month_data, month_names[month], year, x, y, month_width, month_height, chinese_font_added)
@@ -1409,58 +1421,38 @@ class CalendarGenerator:
     def _draw_month_fpdf(self, pdf, month_data, month_name, year, x, y, width, height, chinese_font_available=False):
         """Draw a single month using FPDF"""
         try:
-            # Set position
-            pdf.set_xy(x, y)
-            
-            # Month title
-            if chinese_font_available:
-                pdf.set_font('Chinese', 'B', 10)
-                title = f'{month_name} {year}'
-            else:
-                pdf.set_font('Arial', 'B', 10)
-                title = f'{month_name} {year}'
-                
-            pdf.cell(width, 8, title, 0, 1, 'C')
-            
-            # Weekday headers
+            title_height = 5
+            weekday_height = 4
+            day_height = min(5, (height - title_height - weekday_height) / len(month_data['weeks']))
             cell_width = width / 7
-            
-            pdf.set_xy(x, y + 10)
+
             if chinese_font_available:
-                pdf.set_font('Chinese', 'B', 8)
+                pdf.set_font('Chinese', '', 7)
+                title = f'{month_name} {year}'
                 weekdays = ['日', '一', '二', '三', '四', '五', '六']
             else:
-                pdf.set_font('Arial', 'B', 8)
+                pdf.set_font('Arial', 'B', 7)
+                title = f'{month_name} {year}'
                 weekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
-            
+
+            pdf.set_xy(x, y)
+            pdf.cell(width, title_height, title, 1, 0, 'C')
+            pdf.set_xy(x, y + title_height)
+            pdf.set_font('Chinese' if chinese_font_available else 'Arial', 'B', 6)
             for weekday in weekdays:
-                pdf.cell(cell_width, 6, weekday, 1, 0, 'C')
-            pdf.ln()
-            
-            # Calendar days
-            if chinese_font_available:
-                pdf.set_font('Chinese', '', 8)
-            else:
-                pdf.set_font('Arial', '', 8)
-            
-            for week in month_data['weeks']:
-                start_x = pdf.get_x()
-                start_y = pdf.get_y()
-                
+                pdf.cell(cell_width, weekday_height, weekday, 1, 0, 'C')
+
+            pdf.set_font('Chinese' if chinese_font_available else 'Arial', '', 6)
+            for week_index, week in enumerate(month_data['weeks']):
+                pdf.set_xy(x, y + title_height + weekday_height + week_index * day_height)
                 for day_data in week:
                     if day_data is None:
-                        pdf.cell(cell_width, 6, '', 1, 0, 'C')
+                        pdf.cell(cell_width, day_height, '', 1, 0, 'C')
                     else:
                         day_num = str(day_data['day'])
                         if day_data.get('events'):
-                            if chinese_font_available:
-                                day_num += '●'  # Chinese bullet for events
-                            else:
-                                day_num += '*'  # Asterisk for events
-                        pdf.cell(cell_width, 6, day_num, 1, 0, 'C')
-                
-                pdf.set_xy(x, start_y + 6)
-            
+                            day_num += '*'
+                        pdf.cell(cell_width, day_height, day_num, 1, 0, 'C')
         except Exception as e:
             print(f"Error drawing month {month_name}: {e}")
             # Draw simple fallback
@@ -1471,7 +1463,7 @@ class CalendarGenerator:
                 pdf.set_font('Arial', '', 10)
             pdf.cell(width, height, f'{month_name} {year}', 1, 0, 'C')
     
-    def _create_month_table_for_pdf(self, month_data, year, month_names):
+    def _create_month_table_for_pdf(self, month_data, year, month_names, width=None, font_name='Helvetica'):
         """Create a table for a single month in PDF"""
         month = month_data['month']
         
@@ -1504,32 +1496,39 @@ class CalendarGenerator:
                     week_row.append(day_num)
             table_data.append(week_row)
         
-        # Create table
-        table = Table(table_data, colWidths=[0.35*inch]*7, rowHeights=[0.25*inch]*(len(table_data)))
+        # Keep each month compact enough to fit in a 3-by-4 A4 landscape grid.
+        cell_width = (width or 2.7*inch) / 7
+        row_heights = [18, 14] + [17] * len(month_data['weeks'])
+        table = Table(table_data, colWidths=[cell_width] * 7, rowHeights=row_heights)
         
         # Style the table
         table.setStyle(TableStyle([
             # Month title row
             ('SPAN', (0, 0), (6, 0)),
             ('ALIGN', (0, 0), (6, 0), 'CENTER'),
-            ('FONTSIZE', (0, 0), (6, 0), 12),
-            ('FONTNAME', (0, 0), (6, 0), 'Helvetica-Bold'),
-            ('BOTTOMPADDING', (0, 0), (6, 0), 8),
+            ('FONTSIZE', (0, 0), (6, 0), 9),
+            ('FONTNAME', (0, 0), (6, 0), font_name),
+            ('TOPPADDING', (0, 0), (6, 0), 1),
+            ('BOTTOMPADDING', (0, 0), (6, 0), 1),
             
             # Weekday headers
             ('ALIGN', (0, 1), (6, 1), 'CENTER'),
-            ('FONTSIZE', (0, 1), (6, 1), 8),
-            ('FONTNAME', (0, 1), (6, 1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 1), (6, 1), 7),
+            ('FONTNAME', (0, 1), (6, 1), font_name),
             ('BACKGROUND', (0, 1), (6, 1), colors.lightgrey),
             
             # Calendar days
             ('ALIGN', (0, 2), (6, -1), 'CENTER'),
-            ('FONTSIZE', (0, 2), (6, -1), 8),
-            ('VALIGN', (0, 2), (6, -1), 'TOP'),
+            ('FONTSIZE', (0, 2), (6, -1), 7),
+            ('VALIGN', (0, 2), (6, -1), 'MIDDLE'),
             
             # Grid
-            ('GRID', (0, 1), (6, -1), 0.5, colors.black),
-            ('BOX', (0, 0), (6, -1), 1, colors.black),
+            ('GRID', (0, 1), (6, -1), 0.25, colors.black),
+            ('BOX', (0, 0), (6, -1), 0.5, colors.black),
+            ('LEFTPADDING', (0, 0), (-1, -1), 1),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 1),
+            ('TOPPADDING', (0, 1), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 0),
             
             # Weekend styling (Sunday and Saturday)
             ('TEXTCOLOR', (0, 2), (0, -1), colors.red),  # Sunday
