@@ -193,7 +193,16 @@ class SofiaCalendar {
             });
             
             if (!response.ok) {
-                throw new Error('生成失败');
+                let errorMessage = `请求失败（HTTP ${response.status}）`;
+                try {
+                    const errorData = await response.json();
+                    if (errorData && errorData.error) {
+                        errorMessage = errorData.error;
+                    }
+                } catch (parseError) {
+                    // Keep the HTTP status when the server did not return JSON.
+                }
+                throw new Error(errorMessage);
             }
             
             const data = await response.json();
@@ -211,7 +220,8 @@ class SofiaCalendar {
             
         } catch (error) {
             console.error('Error generating calendar:', error);
-            this.showToast('生成年历时发生错误', 'danger');
+            const message = error instanceof Error ? error.message : String(error);
+            this.showToast(`生成年历失败：${message}`, 'danger');
         } finally {
             this.showLoading(false);
         }
