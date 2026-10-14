@@ -12,8 +12,8 @@ from io import BytesIO
 
 # PDF generation imports
 try:
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch, cm, mm
     from reportlab.lib import colors
@@ -1209,11 +1209,11 @@ class CalendarGenerator:
                 except Exception as font_error:
                     print(f"Unable to load calendar font {font_path}: {font_error}")
 
-            # Use a nearly borderless landscape A4 page. All 12 months are
+            # Use a nearly borderless portrait A4 page. All 12 months are
             # arranged in a compact 3-column by 4-row grid.
             doc = SimpleDocTemplate(
                 buffer,
-                pagesize=landscape(A4),
+                pagesize=A4,
                 rightMargin=3*mm,
                 leftMargin=3*mm,
                 topMargin=3*mm,
@@ -1252,7 +1252,7 @@ class CalendarGenerator:
                 else ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
             )
             
-            # Fit all 12 months on one A4 landscape page.
+            # Fit all 12 months on one A4 portrait page.
             month_width = doc.width / 3
             month_tables = [
                 self._create_month_table_for_pdf(month_data, year, month_names, month_width - 3, calendar_font)
@@ -1296,7 +1296,7 @@ class CalendarGenerator:
         """Generate PDF calendar using FPDF"""
         try:
             # Create FPDF instance with UTF-8 support
-            pdf = FPDF(orientation='L', unit='mm', format='A4')  # Landscape A4
+            pdf = FPDF(orientation='P', unit='mm', format='A4')  # Portrait A4
             pdf.add_page()
             
             # Try to add Chinese font support
@@ -1343,19 +1343,6 @@ class CalendarGenerator:
             except Exception as e:
                 print(f"Error setting up Chinese font: {e}")
             
-            # Set font
-            if chinese_font_added:
-                pdf.set_font('Chinese', '', 16)
-            else:
-                pdf.set_font('Arial', 'B', 16)
-            
-            # Title
-            if chinese_font_added:
-                pdf.cell(0, 15, f'{year}年年历', 0, 1, 'C')
-            else:
-                pdf.cell(0, 15, f'{year} Calendar', 0, 1, 'C')
-            pdf.ln(10)
-            
             # Generate calendar data
             calendar_data = self.generate_calendar_data(year, options, session_id)
             
@@ -1368,13 +1355,12 @@ class CalendarGenerator:
                               "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
             
             # Calculate dimensions
-            page_width = 297  # A4 landscape width in mm
-            page_height = 210  # A4 landscape height in mm
+            page_width = 210  # A4 portrait width in mm
+            page_height = 297  # A4 portrait height in mm
             margin = 2
             usable_width = page_width - 2 * margin
             usable_height = page_height - 16  # compact title area
 
-            months_per_page = 12  # 4 rows x 3 columns on one page
             month_width = usable_width / 3
             month_height = usable_height / 4
             
@@ -1423,7 +1409,7 @@ class CalendarGenerator:
         try:
             title_height = 5
             weekday_height = 4
-            day_height = min(5, (height - title_height - weekday_height) / len(month_data['weeks']))
+            day_height = (height - title_height - weekday_height) / len(month_data['weeks'])
             cell_width = width / 7
 
             if chinese_font_available:
@@ -1496,9 +1482,9 @@ class CalendarGenerator:
                     week_row.append(day_num)
             table_data.append(week_row)
         
-        # Keep each month compact enough to fit in a 3-by-4 A4 landscape grid.
+        # Keep each month compact enough to fit in a 3-by-4 A4 portrait grid.
         cell_width = (width or 2.7*inch) / 7
-        row_heights = [18, 14] + [17] * len(month_data['weeks'])
+        row_heights = [18, 14] + [27] * len(month_data['weeks'])
         table = Table(table_data, colWidths=[cell_width] * 7, rowHeights=row_heights)
         
         # Style the table
