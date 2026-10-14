@@ -9,6 +9,7 @@ instance/
 *.sqlite3
 *.log
 *.bak
+static/fonts/msyh.ttc
 certs/*.key
 certs/*-key.pem
 exports/
