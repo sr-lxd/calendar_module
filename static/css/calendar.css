@@ -1,0 +1,714 @@
+/* Sofia Calendar Module Styles */
+
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --danger-color: #dc3545;
+    --info-color: #17a2b8;
+    --light-color: #f8f9fa;
+    --dark-color: #343a40;
+    --border-radius: 8px;
+    --box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+body {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    min-height: 100vh;
+    font-family: 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+}
+
+.navbar-brand {
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.control-panel {
+    box-shadow: var(--box-shadow);
+    border: none;
+    border-radius: var(--border-radius);
+}
+
+.control-panel .card-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
+}
+
+.feature-options .form-check {
+    margin-bottom: 8px;
+}
+
+.feature-options .form-check-label {
+    font-size: 0.9rem;
+    color: var(--dark-color);
+}
+
+.traditional-info {
+    box-shadow: var(--box-shadow);
+    border: none;
+    border-radius: var(--border-radius);
+}
+
+.traditional-info .card-header {
+    background: linear-gradient(45deg, #ff7b7b, #ff9999);
+    color: white;
+}
+
+.calendar-display {
+    box-shadow: var(--box-shadow);
+    border: none;
+    border-radius: var(--border-radius);
+    min-height: 600px;
+}
+
+.calendar-display .card-header {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    color: white;
+}
+
+.calendar-content {
+    min-height: 500px;
+}
+
+/* Calendar Grid Styles */
+.calendar-year {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+.calendar-month {
+    border: 2px solid #e0e0e0;
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.calendar-month:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.month-header {
+    background: linear-gradient(135deg, var(--info-color), #138496);
+    color: white;
+    text-align: center;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    background: var(--light-color);
+    border-bottom: 1px solid #dee2e6;
+}
+
+.weekday {
+    padding: 8px 4px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--dark-color);
+    font-size: 12px;
+    border-right: 1px solid #dee2e6;
+}
+
+.weekday:last-child {
+    border-right: none;
+}
+
+.calendar-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 1px;
+    background: #f0f0f0;
+}
+
+.calendar-day {
+    background: white;
+    min-height: 60px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.calendar-day:hover {
+    background: #f8f9ff;
+    border-color: var(--primary-color);
+    transform: scale(1.02);
+}
+
+.calendar-day.other-month {
+    background: #f8f9fa;
+    color: #6c757d;
+}
+
+.calendar-day.today {
+    background: var(--danger-color);
+    color: white;
+    font-weight: bold;
+}
+
+.calendar-day.weekend {
+    background: #fff8e1;
+}
+
+.day-number {
+    font-weight: bold;
+    font-size: 14px;
+    margin-bottom: 2px;
+}
+
+.day-events {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    font-size: 8px;
+    line-height: 1.1;
+}
+
+.day-event {
+    margin: 1px 0;
+    padding: 1px 2px;
+    border-radius: 2px;
+    text-align: center;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.day-event.festival {
+    background: #ffebee;
+    color: var(--danger-color);
+    font-weight: bold;
+}
+
+.day-event.lunar {
+    background: #e8f5e8;
+    color: var(--success-color);
+}
+
+.day-event.lunar-festival {
+    background: #fff3e0;
+    color: #ff6f00;
+    font-weight: bold;
+}
+
+.day-event.solar-term {
+    background: #e3f2fd;
+    color: var(--info-color);
+    font-weight: bold;
+}
+
+.day-event.auspicious {
+    background: #f3e5f5;
+    color: #7b1fa2;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.day-event.auspicious:hover {
+    background: #e1bee7;
+    border-color: #7b1fa2;
+    transform: scale(1.05);
+}
+
+/* Export Buttons */
+.export-btn {
+    border-radius: var(--border-radius);
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    transition: all 0.2s ease;
+}
+
+.export-btn:hover {
+    transform: translateY(-1px);
+}
+
+/* Loading Spinner */
+.spinner-border-sm {
+    width: 1rem;
+    height: 1rem;
+}
+
+/* Modal Styles */
+.modal {
+    z-index: 10000 !important; /* 确保模态框在全屏日历之上 */
+}
+
+.modal-backdrop {
+    z-index: 9999 !important; /* 背景遮罩也需要高于全屏日历 */
+}
+
+.modal-content {
+    border-radius: var(--border-radius);
+    border: none;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    z-index: 10001 !important; /* 模态框内容需要最高层级 */
+}
+
+.modal-header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+/* Day Detail Styles */
+.day-detail-section {
+    margin-bottom: 20px;
+    padding: 15px;
+    border-radius: var(--border-radius);
+    border: 1px solid #e0e0e0;
+}
+
+.day-detail-section h6 {
+    color: var(--primary-color);
+    margin-bottom: 10px;
+    font-weight: bold;
+}
+
+/* Enhanced Auspicious Day Styles */
+.auspicious-info {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+.auspicious-basic-info {
+    background: rgba(123, 31, 162, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.auspicious-basic-info .row {
+    margin: 0;
+}
+
+.lunar-info {
+    background: rgba(40, 167, 69, 0.1);
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #28a745;
+}
+
+.traditional-info {
+    background: rgba(255, 193, 7, 0.1);
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 4px solid #ffc107;
+}
+
+.peng-zu-info {
+    background: rgba(108, 117, 125, 0.1);
+    padding: 8px;
+    border-radius: 4px;
+    margin-top: 8px;
+}
+
+.yi-section, .ji-section {
+    padding: 12px;
+    border-radius: 6px;
+    margin-top: 15px;
+}
+
+.yi-section {
+    background: rgba(40, 167, 69, 0.1);
+    border-left: 4px solid #28a745;
+}
+
+.ji-section {
+    background: rgba(220, 53, 69, 0.1);
+    border-left: 4px solid #dc3545;
+}
+
+.activity-item {
+    background: rgba(255, 255, 255, 0.6);
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.yi-items, .ji-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.activity-tag {
+    background: var(--success-color);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    margin: 2px;
+    display: inline-block;
+}
+
+.activity-tag.ji {
+    background: var(--danger-color);
+}
+
+.yi-tag {
+    background: var(--success-color);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin: 2px;
+}
+
+.ji-tag {
+    background: var(--danger-color);
+    color: white;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    display: inline-block;
+    margin: 2px;
+}
+
+/* Enhanced Day Detail Modal */
+.modal-dialog.modal-lg {
+    max-width: 800px;
+}
+
+/* Touch-friendly interactions and gestures */
+.calendar-day {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Swipe gesture support */
+.calendar-month {
+    touch-action: pan-y;
+}
+
+.calendar-year {
+    touch-action: pan-y;
+}
+
+/* Enhanced button touches */
+.btn {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.btn:active {
+    transform: scale(0.98);
+    transition: transform 0.1s ease;
+}
+
+/* Better scroll behavior */
+.modal-body {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+.calendar-content {
+    -webkit-overflow-scrolling: touch;
+}
+
+.auspicious-info .row [class*="col-"] {
+    padding: 5px 10px;
+}
+
+.badge {
+    font-size: 0.75rem;
+    padding: 0.25em 0.6em;
+}
+
+/* Responsive improvements for auspicious details */
+@media (max-width: 768px) {
+    .auspicious-basic-info .col-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+        margin-bottom: 8px;
+    }
+
+    .activity-item {
+        margin-bottom: 8px;
+    }
+
+    .modal-dialog.modal-lg {
+        max-width: 95%;
+        margin: 10px auto;
+    }
+
+    .modal-dialog {
+        margin: 10px;
+    }
+
+    .modal-content {
+        max-height: calc(100vh - 20px);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .modal-body {
+        overflow-y: auto !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        max-height: calc(100vh - 180px);
+        flex: 1 1 auto;
+    }
+
+    .modal-header, .modal-footer {
+        flex-shrink: 0;
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .calendar-year {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .calendar-month {
+        margin: 0 10px;
+    }
+    
+    .calendar-day {
+        min-height: 50px;
+        font-size: 11px;
+    }
+    
+    .day-event {
+        font-size: 7px;
+    }
+    
+    .control-panel {
+        margin-bottom: 20px;
+    }
+}
+
+@media (max-width: 576px) {
+    .calendar-day {
+        min-height: 40px;
+        padding: 2px;
+    }
+    
+    .day-number {
+        font-size: 12px;
+    }
+    
+    .day-event {
+        font-size: 6px;
+        padding: 0 1px;
+    }
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.calendar-month {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white !important;
+    }
+    
+    .navbar, .control-panel, .card-header {
+        display: none !important;
+    }
+    
+    .calendar-display {
+        box-shadow: none !important;
+        border: none !important;
+    }
+    
+    .calendar-month {
+        break-inside: avoid;
+        box-shadow: none !important;
+        border: 1px solid #000 !important;
+        margin-bottom: 20px;
+    }
+}
+
+/* Welcome Message */
+.welcome-message {
+    color: var(--dark-color);
+}
+
+.welcome-message i {
+    opacity: 0.3;
+}
+
+/* Toast Notifications */
+.toast {
+    border-radius: var(--border-radius);
+    box-shadow: var(--box-shadow);
+    z-index: 10002 !important; /* 确保Toast通知在全屏模式下可见 */
+}
+
+.toast-container {
+    z-index: 10002 !important; /* Toast容器也需要高z-index */
+}
+
+.toast-header {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* Fullscreen Mode */
+.fullscreen-calendar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background: white;
+    overflow: auto;
+}
+
+/* 确保全屏模式下其他UI元素可见 */
+.fullscreen-calendar .dropdown-menu {
+    z-index: 10003 !important;
+}
+
+.fullscreen-calendar .tooltip {
+    z-index: 10003 !important;
+}
+
+.fullscreen-calendar .popover {
+    z-index: 10003 !important;
+}
+
+.fullscreen-calendar .calendar-year {
+    padding: 20px;
+}
+
+/* Personal Holidays Styles */
+.day-event.personal_holiday {
+    background: rgba(255, 107, 107, 0.1);
+    border-left: 3px solid #ff6b6b;
+    font-weight: 500;
+    position: relative;
+}
+
+.day-event.personal_holiday.birthday-event {
+    background: rgba(255, 105, 180, 0.15);
+    border-left-color: #ff69b4;
+    animation: birthday-glow 2s infinite alternate;
+}
+
+@keyframes birthday-glow {
+    0% { box-shadow: 0 0 5px rgba(255, 105, 180, 0.3); }
+    100% { box-shadow: 0 0 10px rgba(255, 105, 180, 0.6); }
+}
+
+/* Holiday Modal Styles */
+.holiday-item {
+    transition: all 0.2s ease;
+}
+
+.holiday-item:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.holiday-item .badge {
+    font-size: 0.7rem;
+}
+
+/* Form Control Adjustments */
+.form-control-color {
+    width: 100%;
+    height: 38px;
+}
+
+/* Day Detail Modal Personal Holiday Styles */
+.day-detail-section h6 span {
+    font-size: 1.1em;
+    margin-right: 0.5rem;
+}
+
+/* Loading and Error States */
+.holidays-list .text-center i {
+    opacity: 0.6;
+}
+
+/* Responsive Improvements */
+@media (max-width: 576px) {
+    .holiday-item {
+        padding: 0.75rem !important;
+    }
+    
+    .holiday-item h6 {
+        font-size: 0.9rem;
+    }
+    
+    .holiday-item .btn-group-vertical {
+        flex-direction: row;
+    }
+}
+
+/* Performance optimizations */
+.calendar-month {
+    will-change: transform;
+    contain: layout style paint;
+}
+
+.calendar-day {
+    will-change: transform, background-color;
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+    .calendar-month {
+        animation: none !important;
+    }
+    
+    .calendar-day {
+        transition: none !important;
+    }
+    
+    .btn:active {
+        transform: none !important;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .calendar-day {
+        border: 2px solid #000;
+    }
+    
+    .day-event {
+        border: 1px solid #000;
+        font-weight: bold;
+    }
+}

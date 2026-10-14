@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="description" content="生成中文公历与农历年历，查看节日、二十四节气、黄道吉日，并管理个性化节日。">
+    <meta name="keywords" content="中文日历,万年历,农历,黄历,二十四节气,黄道吉日,Flask Calendar,Chinese Calendar,Lunar Calendar">
+    <meta property="og:title" content="Sofia 年历生成器">
+    <meta property="og:description" content="中文年历、农历、节气、传统节日和个性化节日工具。">
+    <title>Sofia年历生成器 - 通用年历工具</title>
+    <link href="{{ url_for('calendar.static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('calendar.static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('calendar.static', filename='css/calendar.css') }}" rel="stylesheet">
+    <style>
+        /* 移动端模态框修复 */
+        @media (max-width: 768px) {
+            body.modal-open {
+                overflow: visible !important;
+                position: static !important;
+                padding-right: 0 !important;
+            }
+
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+
+            .modal-body {
+                max-height: calc(100vh - 200px);
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            /* 禁用底层日历交互 */
+            body.modal-open .calendar-year,
+            body.modal-open .calendar-month,
+            body.modal-open .calendar-day {
+                pointer-events: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+            <div class="container">
+                <a class="navbar-brand" href="/calendar">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    Sofia 年历生成器
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/">
+                        <i class="fas fa-home me-1"></i>
+                        返回主页
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <div class="row">
+                <!-- Control Panel -->
+                <div class="col-md-4 col-lg-3">
+                    <div class="card control-panel">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-cogs me-2"></i>
+                                年历设置
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <!-- Year Selection -->
+                            <div class="mb-3">
+                                <label for="year-input" class="form-label">选择年份</label>
+                                <div class="input-group">
+                                    <input type="number" id="year-input" class="form-control"
+                                           min="1900" max="2100" value="{{ current_year }}">
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-outline-secondary" id="current-year-btn">
+                                            当前年
+                                        </button>
+                                        <button class="btn btn-outline-secondary" id="next-year-btn">
+                                            明年
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Feature Options -->
+                            <div class="mb-3">
+                                <label class="form-label">显示选项</label>
+                                <div class="feature-options">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-festivals" checked>
+                                        <label class="form-check-label" for="show-festivals">
+                                            显示公历节日
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-lunar">
+                                        <label class="form-check-label" for="show-lunar">
+                                            显示农历日期
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-lunar-festivals">
+                                        <label class="form-check-label" for="show-lunar-festivals">
+                                            显示农历节日
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-solar-terms">
+                                        <label class="form-check-label" for="show-solar-terms">
+                                            显示二十四节气
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-personal-holidays" checked>
+                                        <label class="form-check-label" for="show-personal-holidays">
+                                            显示个性化节日
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="show-auspicious">
+                                        <label class="form-check-label" for="show-auspicious">
+                                            显示黄道吉日
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox"
+                                               id="highlight-today" checked>
+                                        <label class="form-check-label" for="highlight-today">
+                                            突出今天
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Action Buttons -->
+                            <div class="d-grid gap-2">
+                                <button class="btn btn-primary" id="generate-btn">
+                                    <i class="fas fa-calendar-plus me-2"></i>
+                                    生成年历
+                                </button>
+                                <button class="btn btn-info" id="preview-btn">
+                                    <i class="fas fa-eye me-2"></i>
+                                    预览年历
+                                </button>
+                            </div>
+
+                            <!-- Personal Holidays Management -->
+                            <div class="mt-3">
+                                <label class="form-label">
+                                    <i class="fas fa-heart me-1"></i>
+                                    个性化节日
+                                </label>
+                                <div class="d-grid gap-2">
+                                    <button class="btn btn-outline-primary btn-sm" id="add-holiday-btn">
+                                        <i class="fas fa-plus me-1"></i>
+                                        添加节日
+                                    </button>
+                                    <button class="btn btn-outline-info btn-sm" id="manage-holidays-btn">
+                                        <i class="fas fa-list me-1"></i>
+                                        管理节日
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Export Options -->
+                            <div class="mt-3">
+                                <label class="form-label">导出格式</label>
+                                <div class="btn-group-vertical d-grid gap-2" role="group">
+                                    <button class="btn btn-success export-btn position-relative" data-format="html">
+                                        <i class="fas fa-file-code me-1"></i>
+                                        HTML
+                                        <span class="badge bg-primary ms-2">推荐</span>
+                                    </button>
+                                    <button class="btn btn-danger export-btn position-relative" data-format="pdf">
+                                        <i class="fas fa-file-pdf me-1"></i>
+                                        PDF
+                                        <span class="badge bg-warning text-dark ms-2">不推荐</span>
+                                    </button>
+                                    <button class="btn btn-secondary export-btn" data-format="txt">
+                                        <i class="fas fa-file-text me-1"></i>
+                                        TXT
+                                    </button>
+                                </div>
+                                <div class="mt-2">
+                                    <small class="text-muted">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        推荐使用HTML格式，可通过浏览器打印为PDF
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Traditional Calendar Info -->
+                    <div class="card mt-3 traditional-info">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-yin-yang me-2"></i>
+                                传统文化说明
+                            </h6>
+                            <a href="/calendar/help/auspicious" target="_blank"
+                               class="btn btn-outline-primary btn-sm"
+                               title="查看详细计算逻辑">
+                                <i class="fas fa-question-circle me-1"></i>
+                                详情
+                            </a>
+                        </div>
+                        <div class="card-body small">
+                            <p><strong>🔮 黄道吉日:</strong> 基于天干地支、十二建星和黄道神计算，提供传统宜忌建议</p>
+                            <p><strong>🌙 农历信息:</strong> 显示农历日期，包含春节、中秋等传统节日</p>
+                            <p><strong>🌿 二十四节气:</strong> 立春、夏至、秋分、冬至等重要时令节点</p>
+                            <p class="text-muted mb-2">
+                                <small>*仅供传统文化学习和参考，不构成任何建议</small>
+                            </p>
+                            <div class="text-center">
+                                <a href="/calendar/help/auspicious" target="_blank"
+                                   class="btn btn-link btn-sm p-0">
+                                    <i class="fas fa-book-open me-1"></i>
+                                    了解黄道吉日计算原理
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar Display -->
+                <div class="col-md-8 col-lg-9">
+                    <div class="card calendar-display">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" id="calendar-title">
+                                <i class="fas fa-calendar me-2"></i>
+                                {{ current_year }}年年历
+                            </h5>
+                            <div class="calendar-actions">
+                                <button class="btn btn-sm btn-outline-primary" id="fullscreen-btn">
+                                    <i class="fas fa-expand"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body calendar-content">
+                            <div id="loading-spinner" class="text-center py-5" style="display: none;">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p class="mt-2 text-muted">正在生成年历...</p>
+                            </div>
+
+                            <div id="calendar-container">
+                                <div class="welcome-message text-center py-5">
+                                    <i class="fas fa-calendar-alt fa-5x text-muted mb-3"></i>
+                                    <h4 class="text-muted">欢迎使用Sofia通用年历生成器</h4>
+                                    <p class="text-muted">
+                                        支持1900-2100年任意年份<br>
+                                        包含农历、节气、黄道吉日等传统文化元素
+                                    </p>
+                                    <button class="btn btn-primary" id="quick-generate">
+                                        <i class="fas fa-rocket me-2"></i>
+                                        快速生成年历
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Day Detail Modal -->
+                    <div class="modal fade" id="dayDetailModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="dayDetailTitle"></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body" id="dayDetailBody">
+                                    <!-- Day details will be loaded here -->
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                                        关闭
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Add Holiday Modal -->
+                    <div class="modal fade" id="addHolidayModal" tabindex="-1">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-plus me-2"></i>
+                                        添加个性化节日
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <form id="holiday-form">
+                                        <div class="mb-3">
+                                            <label for="holiday-name" class="form-label">节日名称</label>
+                                            <input type="text" class="form-control" id="holiday-name"
+                                                   placeholder="例如：爸爸生日" required>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label for="holiday-month" class="form-label">月份</label>
+                                                <select class="form-select" id="holiday-month" required>
+                                                    <option value="">选择月份</option>
+                                                    <option value="1">1月</option>
+                                                    <option value="2">2月</option>
+                                                    <option value="3">3月</option>
+                                                    <option value="4">4月</option>
+                                                    <option value="5">5月</option>
+                                                    <option value="6">6月</option>
+                                                    <option value="7">7月</option>
+                                                    <option value="8">8月</option>
+                                                    <option value="9">9月</option>
+                                                    <option value="10">10月</option>
+                                                    <option value="11">11月</option>
+                                                    <option value="12">12月</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label for="holiday-day" class="form-label">日期</label>
+                                                <select class="form-select" id="holiday-day" required>
+                                                    <option value="">选择日期</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mb-3 mt-3">
+                                            <label for="holiday-description" class="form-label">描述（可选）</label>
+                                            <textarea class="form-control" id="holiday-description" rows="2"
+                                                     placeholder="节日的额外描述信息"></textarea>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-6">
+                                                <label for="holiday-category" class="form-label">类别</label>
+                                                <select class="form-control" id="holiday-category">
+                                                    <option value="personal">个人</option>
+                                                    <option value="birthday">生日</option>
+                                                    <option value="anniversary">纪念日</option>
+                                                    <option value="work">工作</option>
+                                                    <option value="family">家庭</option>
+                                                    <option value="other">其他</option>
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label for="holiday-color" class="form-label">颜色</label>
+                                                <input type="color" class="form-control form-control-color"
+                                                       id="holiday-color" value="#ff6b6b">
+                                            </div>
+                                        </div>
+                                        <div class="row mt-3">
+                                            <div class="col-6">
+                                                <label for="holiday-icon" class="form-label">图标</label>
+                                                <input type="text" class="form-control" id="holiday-icon"
+                                                       value="🎉" placeholder="🎂">
+                                            </div>
+                                            <div class="col-6">
+                                                <div class="form-check mt-4">
+                                                    <input class="form-check-input" type="checkbox"
+                                                           id="holiday-is-birthday">
+                                                    <label class="form-check-label" for="holiday-is-birthday">
+                                                        这是一个生日
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                    <button type="button" class="btn btn-primary" id="save-holiday-btn">
+                                        <i class="fas fa-save me-1"></i>
+                                        保存节日
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Manage Holidays Modal -->
+                    <div class="modal fade" id="manageHolidaysModal" tabindex="-1">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title">
+                                        <i class="fas fa-list me-2"></i>
+                                        管理个性化节日
+                                    </h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div id="holidays-list">
+                                        <div class="text-center py-3">
+                                            <i class="fas fa-spinner fa-spin"></i>
+                                            正在加载节日列表...
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notification-toast" class="toast" role="alert">
+            <div class="toast-header">
+                <strong class="me-auto">Sofia Calendar</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toast-message">
+                <!-- Toast message -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="{{ url_for('calendar.static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('calendar.static', filename='js/calendar.js') }}"></script>
+</body>
+</html>

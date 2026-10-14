@@ -1,0 +1,1129 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="说明年历工具中传统建星、黄道吉日和宜忌的计算逻辑与参考边界。">
+    <meta name="keywords" content="黄道吉日,建星,老黄历,中文日历,传统历法">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#667eea">
+    <title>黄道吉日计算逻辑说明 - Sofia年历生成器</title>
+    <link href="{{ url_for('calendar.static', filename='css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('calendar.static', filename='css/font-awesome.min.css') }}" rel="stylesheet">
+    <link href="{{ url_for('calendar.static', filename='css/calendar.css') }}" rel="stylesheet">
+    <style>
+        .help-section {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .help-section h3 {
+            color: #667eea;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .help-section h4 {
+            color: #495057;
+            margin-top: 25px;
+            margin-bottom: 15px;
+        }
+        .score-table {
+            font-size: 0.9rem;
+        }
+        .score-excellent { background-color: #d4edda; }
+        .score-good { background-color: #d1ecf1; }
+        .score-average { background-color: #fff3cd; }
+        .score-poor { background-color: #f8d7da; }
+        .flow-step {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .traditional-element {
+            display: inline-block;
+            background: #e9ecef;
+            padding: 5px 10px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+        .wuxing-wood { background-color: #d4edda; color: #155724; }
+        .wuxing-fire { background-color: #f8d7da; color: #721c24; }
+        .wuxing-earth { background-color: #fff3cd; color: #856404; }
+        .wuxing-metal { background-color: #d1ecf1; color: #0c5460; }
+        .wuxing-water { background-color: #e2e3e5; color: #383d41; }
+        .formula-box {
+            background: #f1f3f4;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            margin: 15px 0;
+            overflow-x: auto;
+            word-wrap: break-word;
+        }
+        
+        /* 防止水平滚动的全局设置 */
+        html, body {
+            overflow-x: hidden;
+            width: 100%;
+            max-width: 100%;
+            position: relative;
+        }
+
+        /* 防止整个页面左右晃动 */
+        html {
+            overflow-x: hidden;
+            position: fixed;
+            width: 100%;
+            width: 100vw;
+            height: 100%;
+            height: 100vh;
+        }
+
+        body {
+            overflow-x: hidden;
+            overflow-y: auto;
+            width: 100%;
+            width: 100vw;
+            height: 100%;
+            height: 100vh;
+            position: relative;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* 视口单位支持 */
+        @supports (width: 100dvw) {
+            html {
+                width: 100dvw;
+                height: 100dvh;
+            }
+            body {
+                width: 100dvw;
+                height: 100dvh;
+            }
+        }
+        
+        * {
+            box-sizing: border-box;
+            max-width: 100%;
+        }
+
+        /* 防止图片和媒体元素造成水平滚动 */
+        img, video, iframe, embed, object {
+            max-width: 100%;
+            height: auto;
+        }
+        
+        .container, .container-fluid {
+            max-width: 100%;
+            max-width: 100vw;
+            overflow-x: hidden;
+            padding-left: 10px;
+            padding-right: 10px;
+            width: 100%;
+            width: calc(100vw - 20px);
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* 防止Bootstrap容器突破边界 */
+        .container-fluid {
+            padding-left: 15px;
+            padding-right: 15px;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100vw;
+        }
+
+        .container {
+            width: 100%;
+            padding-left: 15px;
+            padding-right: 15px;
+        }
+
+        @media (min-width: 576px) {
+            .container {
+                max-width: 540px;
+            }
+        }
+
+        @media (min-width: 768px) {
+            .container {
+                max-width: 720px;
+            }
+        }
+
+        @media (min-width: 992px) {
+            .container {
+                max-width: 960px;
+            }
+        }
+
+        @media (min-width: 1200px) {
+            .container {
+                max-width: 1140px;
+            }
+        }
+
+        @media (min-width: 1400px) {
+            .container {
+                max-width: 1320px;
+            }
+        }
+        
+        .row {
+            margin-left: 0;
+            margin-right: 0;
+        }
+        
+        .col, .col-1, .col-2, .col-3, .col-4, .col-5, .col-6,
+        .col-7, .col-8, .col-9, .col-10, .col-11, .col-12,
+        .col-auto, .col-sm, .col-sm-1, .col-sm-2, .col-sm-3,
+        .col-sm-4, .col-sm-5, .col-sm-6, .col-sm-7, .col-sm-8,
+        .col-sm-9, .col-sm-10, .col-sm-11, .col-sm-12, .col-sm-auto,
+        .col-md, .col-md-1, .col-md-2, .col-md-3, .col-md-4,
+        .col-md-5, .col-md-6, .col-md-7, .col-md-8, .col-md-9,
+        .col-md-10, .col-md-11, .col-md-12, .col-md-auto {
+            padding-left: 5px;
+            padding-right: 5px;
+        }
+        
+        /* 移动端优化 */
+        @media (max-width: 768px) {
+            html, body {
+                width: 100vw;
+                max-width: 100vw;
+            }
+
+            .container, .container-fluid {
+                padding: 8px;
+                max-width: 100%;
+                max-width: 100vw;
+                width: 100%;
+                width: 100vw;
+                overflow-x: hidden;
+            }
+
+            .container {
+                padding-left: 8px !important;
+                padding-right: 8px !important;
+            }
+            
+            .row {
+                margin-left: 0;
+                margin-right: 0;
+            }
+            
+            .help-section {
+                padding: 12px;
+                margin: 12px 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                width: 100%;
+                max-width: 100%;
+            }
+
+            .help-section > * {
+                max-width: 100%;
+            }
+            
+            .help-section h3 {
+                font-size: 1.2rem;
+                word-wrap: break-word;
+            }
+            
+            .help-section h4 {
+                font-size: 1.1rem;
+                word-wrap: break-word;
+            }
+            
+            .help-section h5 {
+                font-size: 1rem;
+                word-wrap: break-word;
+            }
+            
+            .help-section h6 {
+                font-size: 0.9rem;
+                word-wrap: break-word;
+            }
+            
+            .table-responsive {
+                font-size: 0.75rem;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+                margin-bottom: 1rem;
+                width: 100%;
+                max-width: calc(100vw - 32px);
+            }
+            
+            .table-responsive table {
+                min-width: 100%;
+                width: max-content;
+                font-size: 0.7rem;
+            }
+            
+            .table th, .table td {
+                padding: 6px 4px;
+                font-size: 0.7rem;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                max-width: 80px;
+            }
+            
+            .traditional-element {
+                font-size: 0.7rem;
+                padding: 2px 4px;
+                margin: 2px 1px;
+                display: inline-block;
+                word-break: keep-all;
+            }
+            
+            .formula-box {
+                font-size: 0.8rem;
+                padding: 10px;
+                margin: 10px 0;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                white-space: pre-wrap;
+            }
+            
+            .flow-step {
+                padding: 10px;
+                margin: 8px 0;
+                word-wrap: break-word;
+            }
+            
+            .flow-step h5 {
+                font-size: 0.95rem;
+                word-wrap: break-word;
+            }
+            
+            .alert {
+                font-size: 0.85rem;
+                padding: 10px;
+                word-wrap: break-word;
+            }
+            
+            /* 导航栏优化 */
+            .navbar {
+                padding-left: 8px;
+                padding-right: 8px;
+                width: 100vw;
+                max-width: 100vw;
+            }
+
+            .navbar .container {
+                width: 100%;
+                max-width: 100%;
+            }
+            
+            .navbar-brand {
+                font-size: 0.9rem;
+                word-wrap: break-word;
+            }
+            
+            .navbar-nav {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+            
+            .nav-link {
+                font-size: 0.8rem;
+                padding: 6px 8px;
+            }
+            
+            /* 按钮优化 */
+            .btn {
+                font-size: 0.85rem;
+                padding: 8px 12px;
+                word-wrap: break-word;
+            }
+            
+            .btn-sm {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
+            
+            /* 列表优化 */
+            ul, ol {
+                padding-left: 20px;
+            }
+            
+            li {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+                margin-bottom: 5px;
+            }
+            
+            /* 卡片优化 */
+            .card {
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            .card-header {
+                padding: 10px 12px;
+                font-size: 0.9rem;
+            }
+            
+            .card-body {
+                padding: 12px;
+            }
+            
+            /* 强制防止任何元素造成水平滚动 */
+            .help-section *,
+            .table-responsive *,
+            .formula-box *,
+            .flow-step *,
+            .alert *,
+            .card * {
+                max-width: 100%;
+                word-wrap: break-word;
+                overflow-wrap: break-word;
+            }
+            
+            /* 特殊处理超长单词 */
+            .table th,
+            .table td {
+                word-break: break-all;
+                hyphens: auto;
+            }
+            
+            /* 隐藏可能导致水平滚动的元素 */
+            .table-responsive::-webkit-scrollbar {
+                height: 6px;
+            }
+            
+            .table-responsive::-webkit-scrollbar-track {
+                background: #f1f1f1;
+                border-radius: 3px;
+            }
+            
+            .table-responsive::-webkit-scrollbar-thumb {
+                background: #c1c1c1;
+                border-radius: 3px;
+            }
+            
+            .table-responsive::-webkit-scrollbar-thumb:hover {
+                background: #a8a8a8;
+            }
+            
+            /* 确保图标不会造成布局问题 */
+            .fas, .fab, .far {
+                min-width: 1em;
+                text-align: center;
+            }
+        }
+        
+        /* 超小屏幕优化 */
+        @media (max-width: 576px) {
+            .container, .container-fluid {
+                padding: 5px;
+            }
+            
+            .help-section {
+                padding: 8px;
+                margin: 8px 0;
+            }
+            
+            .help-section h3 {
+                font-size: 1.1rem;
+            }
+            
+            .help-section h4 {
+                font-size: 1rem;
+            }
+            
+            .help-section h5 {
+                font-size: 0.9rem;
+            }
+            
+            .help-section h6 {
+                font-size: 0.85rem;
+            }
+            
+            .table-responsive {
+                font-size: 0.7rem;
+            }
+            
+            .table th, .table td {
+                padding: 4px 2px;
+                font-size: 0.65rem;
+                max-width: 60px;
+            }
+            
+            .traditional-element {
+                font-size: 0.65rem;
+                padding: 1px 3px;
+                margin: 1px;
+            }
+            
+            .formula-box {
+                font-size: 0.75rem;
+                padding: 8px;
+            }
+            
+            .btn {
+                font-size: 0.8rem;
+                padding: 6px 10px;
+            }
+            
+            .btn-sm {
+                font-size: 0.7rem;
+                padding: 3px 6px;
+            }
+            
+            .navbar-brand {
+                font-size: 0.8rem;
+            }
+            
+            .nav-link {
+                font-size: 0.75rem;
+                padding: 4px 6px;
+            }
+            
+            /* 强制单列布局 */
+            .col-md-6,
+            .col-md-3,
+            .col-md-4,
+            .col-md-8 {
+                margin-bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <!-- Header -->
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+            <div class="container">
+                <a class="navbar-brand" href="/calendar">
+                    <i class="fas fa-yin-yang me-2"></i>
+                    黄道吉日计算说明
+                </a>
+                <div class="navbar-nav ms-auto">
+                    <a class="nav-link" href="/calendar">
+                        <i class="fas fa-arrow-left me-1"></i>
+                        返回年历
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <div class="container">
+            <!-- 概述 -->
+            <div class="help-section">
+                <h3><i class="fas fa-info-circle me-2"></i>黄道吉日计算概述</h3>
+                <p class="lead">
+                    Sofia年历生成器采用传统中华历法体系，结合天干地支、十二建星、黄道十二神等传统元素，
+                    为每一天计算出详细的吉凶信息和宜忌建议。
+                </p>
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb me-2"></i>
+                    <strong>重要说明：</strong>本系统仅供传统文化学习和参考，不构成任何实际生活建议。
+                    黄道吉日的概念源于中国古代天文历法，体现了古人对时间规律的认知和总结。
+                </div>
+            </div>
+
+            <!-- 核心计算要素 -->
+            <div class="help-section">
+                <h3><i class="fas fa-cogs me-2"></i>核心计算要素</h3>
+                
+                <h4>1. 天干地支系统</h4>
+                <p>天干地支是中国古代的纪年、纪月、纪日、纪时系统，也是黄道吉日计算的基础。</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>十天干：</h6>
+                        <div>
+                            <span class="traditional-element wuxing-wood">甲(木)</span>
+                            <span class="traditional-element wuxing-wood">乙(木)</span>
+                            <span class="traditional-element wuxing-fire">丙(火)</span>
+                            <span class="traditional-element wuxing-fire">丁(火)</span>
+                            <span class="traditional-element wuxing-earth">戊(土)</span>
+                            <span class="traditional-element wuxing-earth">己(土)</span>
+                            <span class="traditional-element wuxing-metal">庚(金)</span>
+                            <span class="traditional-element wuxing-metal">辛(金)</span>
+                            <span class="traditional-element wuxing-water">壬(水)</span>
+                            <span class="traditional-element wuxing-water">癸(水)</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>十二地支：</h6>
+                        <div>
+                            <span class="traditional-element wuxing-water">子(水)</span>
+                            <span class="traditional-element wuxing-earth">丑(土)</span>
+                            <span class="traditional-element wuxing-wood">寅(木)</span>
+                            <span class="traditional-element wuxing-wood">卯(木)</span>
+                            <span class="traditional-element wuxing-earth">辰(土)</span>
+                            <span class="traditional-element wuxing-fire">巳(火)</span>
+                            <span class="traditional-element wuxing-fire">午(火)</span>
+                            <span class="traditional-element wuxing-earth">未(土)</span>
+                            <span class="traditional-element wuxing-metal">申(金)</span>
+                            <span class="traditional-element wuxing-metal">酉(金)</span>
+                            <span class="traditional-element wuxing-earth">戌(土)</span>
+                            <span class="traditional-element wuxing-water">亥(水)</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="formula-box">
+                    <strong>干支计算公式：</strong><br>
+                    基准：1900年1月31日 = 甲子日<br>
+                    天干索引 = (目标日期 - 基准日期) % 10<br>
+                    地支索引 = (目标日期 - 基准日期) % 12
+                </div>
+
+                <h4>2. 十二建星</h4>
+                <p>十二建星是确定日子吉凶的重要依据，每个建星都有对应的宜忌事项。</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered score-table">
+                        <thead class="table-primary">
+                            <tr>
+                                <th style="min-width: 40px;">建星</th>
+                                <th style="min-width: 35px;">评分</th>
+                                <th style="min-width: 40px;">等级</th>
+                                <th style="min-width: 60px;">主要特征</th>
+                                <th class="d-none d-md-table-cell" style="min-width: 80px;">适宜事项</th>
+                                <th class="d-none d-md-table-cell" style="min-width: 60px;">忌讳事项</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="score-excellent">
+                                <td><strong>建</strong></td>
+                                <td>85</td>
+                                <td>大吉</td>
+                                <td>万事开头</td>
+                                <td class="d-none d-md-table-cell">出行、上任、会友</td>
+                                <td class="d-none d-md-table-cell">动土、开仓</td>
+                            </tr>
+                            <tr class="score-excellent">
+                                <td><strong>开</strong></td>
+                                <td>85</td>
+                                <td>大吉</td>
+                                <td>开启通达</td>
+                                <td class="d-none d-md-table-cell">开光、出行、交易</td>
+                                <td class="d-none d-md-table-cell">葬埋、开仓</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>成</strong></td>
+                                <td>80</td>
+                                <td>中吉</td>
+                                <td>成就完成</td>
+                                <td class="d-none d-md-table-cell">开市、交易、修造</td>
+                                <td class="d-none d-md-table-cell">嫁娶、安葬</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>定</strong></td>
+                                <td>80</td>
+                                <td>中吉</td>
+                                <td>安定稳固</td>
+                                <td class="d-none d-md-table-cell">嫁娶、立约、交易</td>
+                                <td class="d-none d-md-table-cell">诉讼、出行</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>收</strong></td>
+                                <td>75</td>
+                                <td>中吉</td>
+                                <td>收获积累</td>
+                                <td class="d-none d-md-table-cell">纳财、开仓、嫁娶</td>
+                                <td class="d-none d-md-table-cell">开市、立券</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>满</strong></td>
+                                <td>75</td>
+                                <td>中吉</td>
+                                <td>圆满充实</td>
+                                <td class="d-none d-md-table-cell">祈福、祭祀、结亲</td>
+                                <td class="d-none d-md-table-cell">服药、针灸</td>
+                            </tr>
+                            <tr class="score-average">
+                                <td><strong>执</strong></td>
+                                <td>65</td>
+                                <td>小吉</td>
+                                <td>执持坚守</td>
+                                <td class="d-none d-md-table-cell">建屋、种植、捕捉</td>
+                                <td class="d-none d-md-table-cell">移徙、出行</td>
+                            </tr>
+                            <tr class="score-average">
+                                <td><strong>平</strong></td>
+                                <td>60</td>
+                                <td>小吉</td>
+                                <td>平稳平常</td>
+                                <td class="d-none d-md-table-cell">修路、平整、涂泥</td>
+                                <td class="d-none d-md-table-cell">祭祀、开光</td>
+                            </tr>
+                            <tr class="score-average">
+                                <td><strong>闭</strong></td>
+                                <td>45</td>
+                                <td>小吉</td>
+                                <td>闭塞阻隔</td>
+                                <td class="d-none d-md-table-cell">祭祀、筑堤、填穴</td>
+                                <td class="d-none d-md-table-cell">开市、出行</td>
+                            </tr>
+                            <tr class="score-average">
+                                <td><strong>危</strong></td>
+                                <td>40</td>
+                                <td>不宜</td>
+                                <td>危险不稳</td>
+                                <td class="d-none d-md-table-cell">祭祀、祈福、斋醮</td>
+                                <td class="d-none d-md-table-cell">登高、行船</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>破</strong></td>
+                                <td>30</td>
+                                <td>不宜</td>
+                                <td>破坏冲突</td>
+                                <td class="d-none d-md-table-cell">破屋、求医、捕猎</td>
+                                <td class="d-none d-md-table-cell">嫁娶、开市</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 移动端显示详细信息的替代方案 -->
+                <div class="d-md-none mt-3">
+                    <h6>详细宜忌信息：</h6>
+                    <div class="accordion" id="mobileStarAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mobileStarDetails">
+                                    <small>点击查看各建星详细宜忌事项</small>
+                                </button>
+                            </h2>
+                            <div id="mobileStarDetails" class="accordion-collapse collapse" data-bs-parent="#mobileStarAccordion">
+                                <div class="accordion-body">
+                                    <div class="row">
+                                        <div class="col-6">
+                                            <strong>大吉建星：</strong><br>
+                                            <small>建: 出行、上任、会友 | 忌: 动土、开仓</small><br>
+                                            <small>开: 开光、出行、交易 | 忌: 葬埋、开仓</small>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong>中吉建星：</strong><br>
+                                            <small>成: 开市、交易、修造 | 忌: 嫁娶、安葬</small><br>
+                                            <small>定: 嫁娶、立约、交易 | 忌: 诉讼、出行</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>3. 黄道十二神</h4>
+                <p>黄道十二神按顺序轮流值日，影响当日的吉凶程度。</p>
+                
+                <div class="table-responsive">
+                    <table class="table table-bordered score-table">
+                        <thead class="table-warning">
+                            <tr>
+                                <th style="min-width: 45px;">神煞</th>
+                                <th style="min-width: 35px;">评分</th>
+                                <th style="min-width: 45px;">属性</th>
+                                <th style="min-width: 60px;">影响领域</th>
+                                <th class="d-none d-lg-table-cell" style="min-width: 80px;">特别宜事</th>
+                                <th class="d-none d-lg-table-cell" style="min-width: 60px;">特别忌事</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr class="score-excellent">
+                                <td><strong>天德</strong></td>
+                                <td>95</td>
+                                <td>大吉神</td>
+                                <td>德行善事</td>
+                                <td class="d-none d-lg-table-cell">祈福、行善、治病</td>
+                                <td class="d-none d-lg-table-cell">作恶、欺人</td>
+                            </tr>
+                            <tr class="score-excellent">
+                                <td><strong>青龙</strong></td>
+                                <td>90</td>
+                                <td>大吉神</td>
+                                <td>财运事业</td>
+                                <td class="d-none d-lg-table-cell">求财、开市、投资</td>
+                                <td class="d-none d-lg-table-cell">争讼、动怒</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>明堂</strong></td>
+                                <td>85</td>
+                                <td>吉神</td>
+                                <td>官禄学业</td>
+                                <td class="d-none d-lg-table-cell">上任、求官、学习</td>
+                                <td class="d-none d-lg-table-cell">隐瞒、欺骗</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>司命</strong></td>
+                                <td>85</td>
+                                <td>吉神</td>
+                                <td>生命健康</td>
+                                <td class="d-none d-lg-table-cell">求医、养生、祈福</td>
+                                <td class="d-none d-lg-table-cell">伤害、冒险</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>金匮</strong></td>
+                                <td>80</td>
+                                <td>吉神</td>
+                                <td>财富积累</td>
+                                <td class="d-none d-lg-table-cell">存钱、理财、签约</td>
+                                <td class="d-none d-lg-table-cell">借贷、挥霍</td>
+                            </tr>
+                            <tr class="score-good">
+                                <td><strong>玉堂</strong></td>
+                                <td>80</td>
+                                <td>吉神</td>
+                                <td>文艺创作</td>
+                                <td class="d-none d-lg-table-cell">文艺、创作、装修</td>
+                                <td class="d-none d-lg-table-cell">粗俗、破坏</td>
+                            </tr>
+                            <tr class="score-average">
+                                <td><strong>勾陈</strong></td>
+                                <td>45</td>
+                                <td>中性神</td>
+                                <td>保守稳定</td>
+                                <td class="d-none d-lg-table-cell">谨慎、保守、维持</td>
+                                <td class="d-none d-lg-table-cell">冒进、变动</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>朱雀</strong></td>
+                                <td>40</td>
+                                <td>凶神</td>
+                                <td>口舌是非</td>
+                                <td class="d-none d-lg-table-cell">文书、考试、学习</td>
+                                <td class="d-none d-lg-table-cell">口舌争执</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>元武</strong></td>
+                                <td>35</td>
+                                <td>凶神</td>
+                                <td>隐匿暗昧</td>
+                                <td class="d-none d-lg-table-cell">隐匿、保密、内省</td>
+                                <td class="d-none d-lg-table-cell">公开、张扬</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>天刑</strong></td>
+                                <td>35</td>
+                                <td>凶神</td>
+                                <td>刑罚法律</td>
+                                <td class="d-none d-lg-table-cell">执法、断案、清理</td>
+                                <td class="d-none d-lg-table-cell">嫁娶、庆祝</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>天牢</strong></td>
+                                <td>30</td>
+                                <td>凶神</td>
+                                <td>阻滞困顿</td>
+                                <td class="d-none d-lg-table-cell">静思、反省、整理</td>
+                                <td class="d-none d-lg-table-cell">出行、开业</td>
+                            </tr>
+                            <tr class="score-poor">
+                                <td><strong>白虎</strong></td>
+                                <td>25</td>
+                                <td>大凶神</td>
+                                <td>病灾意外</td>
+                                <td class="d-none d-lg-table-cell">清除、分离、治病</td>
+                                <td class="d-none d-lg-table-cell">嫁娶、开业</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- 移动端显示黄道神简化信息 -->
+                <div class="d-lg-none mt-3">
+                    <h6>黄道神分类：</h6>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card score-excellent mb-2">
+                                <div class="card-body p-2">
+                                    <small><strong>大吉神：</strong></small><br>
+                                    <small>天德(95)、青龙(90)</small>
+                                </div>
+                            </div>
+                            <div class="card score-good mb-2">
+                                <div class="card-body p-2">
+                                    <small><strong>吉神：</strong></small><br>
+                                    <small>明堂(85)、司命(85)、金匮(80)、玉堂(80)</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card score-average mb-2">
+                                <div class="card-body p-2">
+                                    <small><strong>中性神：</strong></small><br>
+                                    <small>勾陈(45)</small>
+                                </div>
+                            </div>
+                            <div class="card score-poor mb-2">
+                                <div class="card-body p-2">
+                                    <small><strong>凶神：</strong></small><br>
+                                    <small>朱雀(40)、元武(35)、天刑(35)、天牢(30)、白虎(25)</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 计算流程 -->
+            <div class="help-section">
+                <h3><i class="fas fa-flow-chart me-2"></i>计算流程详解</h3>
+                
+                <div class="flow-step">
+                    <h5><i class="fas fa-step-forward me-2"></i>步骤1：日期转换</h5>
+                    <p>输入阳历日期，计算对应的天干地支组合</p>
+                    <div class="formula-box">
+                        天干地支 = 基于1900年1月31日甲子日的偏移计算<br>
+                        农历信息 = 使用lunardate库进行精确转换
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h5><i class="fas fa-step-forward me-2"></i>步骤2：建星计算</h5>
+                    <p>根据农历月日和干支索引确定当日建星</p>
+                    <div class="formula-box">
+                        建星索引 = (农历月 + 农历日 + 干支索引) % 12
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h5><i class="fas fa-step-forward me-2"></i>步骤3：神煞确定</h5>
+                    <p>按照干支索引确定值日黄道神</p>
+                    <div class="formula-box">
+                        黄道神索引 = 干支索引 % 12
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h5><i class="fas fa-step-forward me-2"></i>步骤4：综合评分</h5>
+                    <p>结合建星和神煞评分，计算综合吉凶等级</p>
+                    <div class="formula-box">
+                        基础分 = 50分<br>
+                        综合分 = (基础分 + 建星分数 + 神煞分数) ÷ 2<br>
+                        等级判定：≥80大吉，≥65中吉，≥45小吉，&lt;45不宜
+                    </div>
+                </div>
+
+                <div class="flow-step">
+                    <h5><i class="fas fa-step-forward me-2"></i>步骤5：宜忌生成</h5>
+                    <p>基于多重因素生成详细的宜忌建议</p>
+                    <ul>
+                        <li><strong>基础规则：</strong>十二建星的传统宜忌</li>
+                        <li><strong>神煞调整：</strong>黄道神的特殊影响</li>
+                        <li><strong>季节因素：</strong>春夏秋冬的活动适宜性</li>
+                        <li><strong>月相影响：</strong>新月满月等对应建议</li>
+                        <li><strong>五行相配：</strong>根据日干支五行属性调整</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 传统文化元素 -->
+            <div class="help-section">
+                <h3><i class="fas fa-scroll me-2"></i>传统文化元素</h3>
+                
+                <h4>1. 冲煞计算</h4>
+                <p>地支之间存在相冲关系，冲煞表示当日与某个方位或属相相冲突。</p>
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>地支相冲对照：</h6>
+                        <ul>
+                            <li>子午冲（北南相冲）</li>
+                            <li>丑未冲（东北西南相冲）</li>
+                            <li>寅申冲（东北西南相冲）</li>
+                            <li>卯酉冲（东西相冲）</li>
+                            <li>辰戌冲（东南西北相冲）</li>
+                            <li>巳亥冲（东南西北相冲）</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>煞方影响：</h6>
+                        <p>冲煞方向代表当日不宜朝向的方位，从事重要活动时应该避开该方向。</p>
+                    </div>
+                </div>
+
+                <h4>2. 彭祖百忌</h4>
+                <p>彭祖百忌是根据天干地支确定的日常禁忌，分为天干禁忌和地支禁忌。</p>
+                <div class="alert alert-secondary">
+                    <strong>示例：</strong><br>
+                    甲日不开仓，财物耗散；子日不问卜，自惹祸殃。
+                </div>
+
+                <h4>3. 胎神位置</h4>
+                <p>胎神是保护胎儿的神祇，每日都有固定的位置，孕妇应避免在胎神所在位置进行土木工程。</p>
+
+                <h4>4. 五行相配</h4>
+                <div class="row">
+                    <div class="col-12">
+                        <h6>五行属性与活动建议：</h6>
+                        
+                        <!-- 桌面端显示 -->
+                        <div class="d-none d-md-block">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <span class="traditional-element wuxing-wood"><strong>木</strong></span>
+                                        宜：创新、发展、学习、种植<br>
+                                        忌：砍伐、破坏、过度竞争
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="traditional-element wuxing-fire"><strong>火</strong></span>
+                                        宜：庆典、宣传、演出、运动<br>
+                                        忌：争斗、冲突、过于激进
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="traditional-element wuxing-earth"><strong>土</strong></span>
+                                        宜：建设、储蓄、稳固、农事<br>
+                                        忌：冒险、投机、急进
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <span class="traditional-element wuxing-metal"><strong>金</strong></span>
+                                        宜：收获、整理、金融、精确工作<br>
+                                        忌：浪费、粗糙、不精确
+                                    </div>
+                                    <div class="mb-2">
+                                        <span class="traditional-element wuxing-water"><strong>水</strong></span>
+                                        宜：学习、思考、流动、清洁<br>
+                                        忌：固执、僵化、过度消费
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 移动端简化显示 -->
+                        <div class="d-md-none">
+                            <div class="accordion" id="wuxingAccordion">
+                                <div class="accordion-item">
+                                    <h2 class="accordion-header">
+                                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#wuxingDetails">
+                                            <small>五行元素说明（点击展开）</small>
+                                        </button>
+                                    </h2>
+                                    <div id="wuxingDetails" class="accordion-collapse collapse" data-bs-parent="#wuxingAccordion">
+                                        <div class="accordion-body">
+                                            <div class="mb-2">
+                                                <span class="traditional-element wuxing-wood"><strong>木</strong></span>
+                                                <small>宜创新发展，忌砍伐破坏</small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <span class="traditional-element wuxing-fire"><strong>火</strong></span>
+                                                <small>宜庆典宣传，忌争斗冲突</small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <span class="traditional-element wuxing-earth"><strong>土</strong></span>
+                                                <small>宜建设储蓄，忌冒险投机</small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <span class="traditional-element wuxing-metal"><strong>金</strong></span>
+                                                <small>宜收获整理，忌浪费粗糙</small>
+                                            </div>
+                                            <div class="mb-2">
+                                                <span class="traditional-element wuxing-water"><strong>水</strong></span>
+                                                <small>宜学习思考，忌固执僵化</small>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用说明 -->
+            <div class="help-section">
+                <h3><i class="fas fa-user-guide me-2"></i>使用说明</h3>
+                
+                <h4>1. 查看黄道吉日信息</h4>
+                <ol>
+                    <li>在年历设置中勾选"显示黄道吉日"选项</li>
+                    <li>生成年历后，带有黄道吉日信息的日期会显示等级标识</li>
+                    <li>点击具体日期可查看详细的干支、建星、神煞信息</li>
+                    <li>查看完整的宜事和忌事清单及详细说明</li>
+                </ol>
+
+                <h4>2. 等级说明</h4>
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="text-center p-3 score-excellent rounded">
+                            <strong>大吉</strong><br>
+                            <small>80分以上</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 score-good rounded">
+                            <strong>中吉</strong><br>
+                            <small>65-79分</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 score-average rounded">
+                            <strong>小吉</strong><br>
+                            <small>45-64分</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="text-center p-3 score-poor rounded">
+                            <strong>不宜</strong><br>
+                            <small>45分以下</small>
+                        </div>
+                    </div>
+                </div>
+
+                <h4>3. 注意事项</h4>
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    <strong>重要提醒：</strong>
+                    <ul class="mb-0">
+                        <li>黄道吉日计算基于传统文化理论，仅供学习参考</li>
+                        <li>不同地区可能有不同的传统习俗和计算方法</li>
+                        <li>现代生活应以科学理性为主，传统文化为辅</li>
+                        <li>重要决策应综合考虑实际情况，不应完全依赖黄道吉日</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 技术实现 -->
+            <div class="help-section">
+                <h3><i class="fas fa-code me-2"></i>技术实现特点</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5>算法优势</h5>
+                        <ul>
+                            <li>基于精确的天文历法计算</li>
+                            <li>支持1900-2100年范围</li>
+                            <li>实时生成，无需预存数据</li>
+                            <li>兼容闰年和特殊情况</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>文化准确性</h5>
+                        <ul>
+                            <li>遵循传统历法理论</li>
+                            <li>结合多种传统元素</li>
+                            <li>提供详细的文化解释</li>
+                            <li>支持个性化设置</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 返回链接 -->
+            <div class="text-center mt-4 mb-5">
+                <a href="/calendar" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    返回年历生成器
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('calendar.static', filename='js/bootstrap.bundle.min.js') }}"></script>
+</body>
+</html>
